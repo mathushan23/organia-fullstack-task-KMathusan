@@ -18,6 +18,7 @@ public record TaskRequest(
         @NotNull(message = "Status is required")
         TaskStatus status,
 
+        @NotNull(message = "Due date is required")
         @FutureOrPresent(message = "Due date cannot be in the past")
         LocalDate dueDate
 ) {

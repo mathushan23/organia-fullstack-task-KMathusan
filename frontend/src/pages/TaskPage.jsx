@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { animate, stagger } from 'animejs'
 import EditTaskPage from './EditTaskPage.jsx'
+import Navbar from './Navbar.jsx'
 
 const emptyForm = {
   title: '',
@@ -23,7 +25,12 @@ function TaskPage({ apiUrl, auth, onLogout }) {
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [toast, setToast] = useState('')
+  const pageRef = useRef(null)
+  const formRef = useRef(null)
+  const createButtonRef = useRef(null)
+  const toastRef = useRef(null)
 
   const authHeaders = useMemo(
     () => ({
@@ -35,6 +42,58 @@ function TaskPage({ apiUrl, auth, onLogout }) {
   useEffect(() => {
     loadTasks()
   }, [statusFilter])
+
+  useEffect(() => {
+    animate(pageRef.current, {
+      opacity: [0, 1],
+      y: [22, 0],
+      duration: 520,
+      ease: 'outQuad',
+    })
+
+    animate(formRef.current.querySelectorAll('label, button'), {
+      opacity: [0, 1],
+      x: [-14, 0],
+      delay: stagger(70),
+      duration: 380,
+      ease: 'outQuad',
+    })
+
+    animate(pageRef.current.querySelectorAll('.summary-card'), {
+      opacity: [0, 1],
+      y: [18, 0],
+      delay: stagger(90),
+      duration: 420,
+      ease: 'outQuad',
+    })
+  }, [])
+
+  useEffect(() => {
+    if (tasks.length === 0) {
+      return
+    }
+
+    animate('.task-card', {
+      opacity: [0, 1],
+      y: [18, 0],
+      duration: 420,
+      delay: stagger(55),
+      ease: 'outQuad',
+    })
+  }, [tasks])
+
+  useEffect(() => {
+    if (!toast) {
+      return
+    }
+
+    animate(toastRef.current, {
+      opacity: [0, 1],
+      x: [24, 0],
+      duration: 260,
+      ease: 'outQuad',
+    })
+  }, [toast])
 
   const loadTasks = async () => {
     const query = statusFilter === 'ALL' ? '' : `?status=${statusFilter}`
@@ -49,6 +108,7 @@ function TaskPage({ apiUrl, auth, onLogout }) {
 
   const updateField = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value })
+    setFieldErrors({ ...fieldErrors, [event.target.name]: '' })
   }
 
   const showToast = (text) => {
@@ -57,34 +117,58 @@ function TaskPage({ apiUrl, auth, onLogout }) {
   }
 
   const validateTask = (taskForm) => {
+    const errors = {}
+
     if (!taskForm.title.trim()) {
-      return 'Title is required'
+      errors.title = 'Title is required'
     }
 
     if (taskForm.title.trim().length > 100) {
-      return 'Title must be 100 characters or less'
+      errors.title = 'Title must be 100 characters or less'
     }
 
     if (taskForm.description.trim().length > 500) {
-      return 'Description must be 500 characters or less'
+      errors.description = 'Description must be 500 characters or less'
+    }
+
+    if (!taskForm.status) {
+      errors.status = 'Status is required'
+    }
+
+    if (!taskForm.dueDate) {
+      errors.dueDate = 'Due date is required'
     }
 
     if (taskForm.dueDate && taskForm.dueDate < today) {
-      return 'Due date cannot be in the past'
+      errors.dueDate = 'Due date cannot be in the past'
     }
 
-    return ''
+    return errors
   }
 
   const submit = async (event) => {
     event.preventDefault()
     setMessage('')
 
-    const validationMessage = validateTask(form)
-    if (validationMessage) {
-      setMessage(validationMessage)
+    const validationErrors = validateTask(form)
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors)
+      setMessage('Please fix the highlighted fields')
+      animate(formRef.current, {
+        x: [-6, 6, -4, 4, 0],
+        duration: 320,
+        ease: 'outQuad',
+      })
       return
     }
+
+    setFieldErrors({})
+
+    animate(createButtonRef.current, {
+      scale: [1, 0.96, 1],
+      duration: 360,
+      ease: 'outBack',
+    })
 
     const response = await fetch(`${apiUrl}/tasks`, {
       method: 'POST',
@@ -171,23 +255,40 @@ function TaskPage({ apiUrl, auth, onLogout }) {
     return text.includes(search.trim().toLowerCase())
   })
 
-  return (
-    <div className="task-page">
-      {toast && <div className="toast">{toast}</div>}
+  const taskSummary = {
+    total: tasks.length,
+    todo: tasks.filter((task) => task.status === 'TO_DO').length,
+    progress: tasks.filter((task) => task.status === 'IN_PROGRESS').length,
+    completed: tasks.filter((task) => task.status === 'COMPLETED').length,
+  }
 
-      <header className="app-header">
-        <div>
-          <p className="eyebrow">{auth.role}</p>
-          <h1>Task Management</h1>
-          <p>{auth.email}</p>
-        </div>
-        <button type="button" onClick={onLogout}>
-          Logout
-        </button>
-      </header>
+  return (
+    <div ref={pageRef} className="task-page">
+      {toast && <div ref={toastRef} className="toast">{toast}</div>}
+
+      <Navbar auth={auth} onLogout={onLogout} />
+
+      <section className="summary-grid">
+        <article className="summary-card">
+          <span>Total Tasks</span>
+          <strong>{taskSummary.total}</strong>
+        </article>
+        <article className="summary-card">
+          <span>To Do</span>
+          <strong>{taskSummary.todo}</strong>
+        </article>
+        <article className="summary-card">
+          <span>In Progress</span>
+          <strong>{taskSummary.progress}</strong>
+        </article>
+        <article className="summary-card">
+          <span>Completed</span>
+          <strong>{taskSummary.completed}</strong>
+        </article>
+      </section>
 
       <section className="task-layout">
-        <form className="task-form" onSubmit={submit}>
+        <form ref={formRef} className="task-form" onSubmit={submit}>
           <div className="page-header">
             <h2>Create Task</h2>
           </div>
@@ -199,8 +300,10 @@ function TaskPage({ apiUrl, auth, onLogout }) {
               value={form.title}
               onChange={updateField}
               maxLength="100"
+              aria-invalid={Boolean(fieldErrors.title)}
               required
             />
+            {fieldErrors.title && <span className="field-error">{fieldErrors.title}</span>}
           </label>
 
           <label>
@@ -211,19 +314,30 @@ function TaskPage({ apiUrl, auth, onLogout }) {
               onChange={updateField}
               maxLength="500"
               rows="4"
+              aria-invalid={Boolean(fieldErrors.description)}
             />
             <span className="field-hint">
               {form.description.length}/500 characters
             </span>
+            {fieldErrors.description && (
+              <span className="field-error">{fieldErrors.description}</span>
+            )}
           </label>
 
           <label>
             Status
-            <select name="status" value={form.status} onChange={updateField}>
+            <select
+              name="status"
+              value={form.status}
+              onChange={updateField}
+              aria-invalid={Boolean(fieldErrors.status)}
+              required
+            >
               <option value="TO_DO">To Do</option>
               <option value="IN_PROGRESS">In Progress</option>
               <option value="COMPLETED">Completed</option>
             </select>
+            {fieldErrors.status && <span className="field-error">{fieldErrors.status}</span>}
           </label>
 
           <label>
@@ -234,10 +348,13 @@ function TaskPage({ apiUrl, auth, onLogout }) {
               value={form.dueDate}
               onChange={updateField}
               min={today}
+              aria-invalid={Boolean(fieldErrors.dueDate)}
+              required
             />
+            {fieldErrors.dueDate && <span className="field-error">{fieldErrors.dueDate}</span>}
           </label>
 
-          <button type="submit">Create Task</button>
+          <button ref={createButtonRef} type="submit">Create Task</button>
           {message && <p className="error">{message}</p>}
         </form>
 

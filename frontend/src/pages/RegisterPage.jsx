@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { animate } from 'animejs'
 
 function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
   const [form, setForm] = useState({
@@ -8,6 +9,31 @@ function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
     confirmPassword: '',
   })
   const [status, setStatus] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const formRef = useRef(null)
+  const buttonRef = useRef(null)
+
+  useEffect(() => {
+    if (!formRef.current) {
+      return
+    }
+
+    animate(formRef.current, {
+      opacity: [0, 1],
+      scale: [0.96, 1],
+      y: [30, 0],
+      duration: 700,
+      ease: 'outBack',
+    })
+
+    animate(formRef.current.querySelectorAll('label, button, .auth-switch'), {
+      opacity: [0, 1],
+      x: [-18, 0],
+      delay: (_, index) => 160 + index * 70,
+      duration: 420,
+      ease: 'outQuad',
+    })
+  }, [])
 
   const updateField = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value })
@@ -32,6 +58,13 @@ function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
     }
 
     setStatus('Please wait...')
+    setIsSubmitting(true)
+
+    animate(buttonRef.current, {
+      scale: [1, 0.96, 1],
+      duration: 420,
+      ease: 'outBack',
+    })
 
     try {
       const response = await fetch(`${apiUrl}/auth/signup`, {
@@ -46,18 +79,28 @@ function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
       }
 
       const data = await response.json()
-      onRegister(data)
-      setStatus('')
+      setStatus('Account created. Redirecting...')
+
+      animate(formRef.current, {
+        opacity: [1, 0],
+        y: [0, -24],
+        scale: [1, 0.98],
+        duration: 520,
+        ease: 'inOutQuad',
+        onComplete: () => onRegister(data),
+      })
     } catch (error) {
       setStatus(error.message)
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={submit}>
+    <form ref={formRef} onSubmit={submit}>
       <div className="page-header">
+        <span className="brand-badge">Task Management System</span>
         <h1>Register</h1>
-        <p>Create your Organia account</p>
+        <p>Create your account</p>
       </div>
 
       <label>
@@ -105,13 +148,19 @@ function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
         />
       </label>
 
-      <button type="submit">Create Account</button>
+      <button ref={buttonRef} type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Creating account...' : 'Create Account'}
+      </button>
 
-      <button type="button" className="link-button" onClick={onShowLogin}>
+      <button type="button" className="link-button auth-switch" onClick={onShowLogin}>
         Already have an account
       </button>
 
-      {status && <p className="error">{status}</p>}
+      {status && (
+        <p className={status.includes('Redirecting') ? 'success' : 'error'}>
+          {status}
+        </p>
+      )}
     </form>
   )
 }
