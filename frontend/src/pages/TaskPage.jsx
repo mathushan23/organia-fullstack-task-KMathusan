@@ -20,6 +20,8 @@ function TaskPage({ apiUrl, auth, onLogout }) {
   const [tasks, setTasks] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingTask, setEditingTask] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
   const [toast, setToast] = useState('')
 
@@ -32,10 +34,11 @@ function TaskPage({ apiUrl, auth, onLogout }) {
 
   useEffect(() => {
     loadTasks()
-  }, [])
+  }, [statusFilter])
 
   const loadTasks = async () => {
-    const response = await fetch(`${apiUrl}/tasks`, {
+    const query = statusFilter === 'ALL' ? '' : `?status=${statusFilter}`
+    const response = await fetch(`${apiUrl}/tasks${query}`, {
       headers: authHeaders,
     })
 
@@ -163,6 +166,11 @@ function TaskPage({ apiUrl, auth, onLogout }) {
     }
   }
 
+  const visibleTasks = tasks.filter((task) => {
+    const text = `${task.title} ${task.description}`.toLowerCase()
+    return text.includes(search.trim().toLowerCase())
+  })
+
   return (
     <div className="task-page">
       {toast && <div className="toast">{toast}</div>}
@@ -238,11 +246,28 @@ function TaskPage({ apiUrl, auth, onLogout }) {
             <h2>Your Tasks</h2>
           </div>
 
+          <div className="task-tools">
+            <input
+              placeholder="Search tasks"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="TO_DO">To Do</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
+
           <div className="task-list">
-            {tasks.length === 0 ? (
+            {visibleTasks.length === 0 ? (
               <p>No tasks found</p>
             ) : (
-              tasks.map((task) => (
+              visibleTasks.map((task) => (
                 <article className="task-card" key={task.id}>
                   <div>
                     <span className={`status status-${task.status.toLowerCase()}`}>
