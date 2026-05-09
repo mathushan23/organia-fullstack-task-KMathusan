@@ -37,6 +37,10 @@ public class AuthService {
     public AuthResponse signup(SignupRequest request) {
         String email = request.email().trim().toLowerCase();
 
+        if (!request.password().equals(request.confirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email is already registered");
         }

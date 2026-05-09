@@ -1,7 +1,12 @@
 import { useState } from 'react'
 
 function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '' })
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  })
   const [status, setStatus] = useState('')
 
   const updateField = (event) => {
@@ -10,6 +15,22 @@ function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
 
   const submit = async (event) => {
     event.preventDefault()
+
+    if (!form.name.trim()) {
+      setStatus('Name is required')
+      return
+    }
+
+    if (form.password.length < 8) {
+      setStatus('Password must be at least 8 characters')
+      return
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setStatus('Passwords do not match')
+      return
+    }
+
     setStatus('Please wait...')
 
     try {
@@ -20,14 +41,15 @@ function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
       })
 
       if (!response.ok) {
-        throw new Error('Registration failed')
+        const error = await response.json().catch(() => null)
+        throw new Error(error?.message || 'Registration failed')
       }
 
       const data = await response.json()
       onRegister(data)
       setStatus('')
-    } catch {
-      setStatus('Registration failed')
+    } catch (error) {
+      setStatus(error.message)
     }
   }
 
@@ -65,6 +87,18 @@ function RegisterPage({ apiUrl, onRegister, onShowLogin }) {
           type="password"
           name="password"
           value={form.password}
+          onChange={updateField}
+          minLength="8"
+          required
+        />
+      </label>
+
+      <label>
+        Confirm Password
+        <input
+          type="password"
+          name="confirmPassword"
+          value={form.confirmPassword}
           onChange={updateField}
           minLength="8"
           required

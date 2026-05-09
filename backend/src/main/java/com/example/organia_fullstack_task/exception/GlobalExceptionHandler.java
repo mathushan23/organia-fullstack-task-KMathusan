@@ -18,9 +18,16 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidation() {
+    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException exception) {
+        String message = exception.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("Invalid request data");
+
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", "Invalid request data"));
+                .body(Map.of("message", message));
     }
 }
