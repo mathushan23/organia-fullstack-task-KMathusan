@@ -22,15 +22,26 @@ function TaskPage({ apiUrl, auth, onLogout }) {
   const [tasks, setTasks] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingTask, setEditingTask] = useState(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [toast, setToast] = useState('')
+  const [fabPosition, setFabPosition] = useState(null)
   const pageRef = useRef(null)
   const formRef = useRef(null)
   const createButtonRef = useRef(null)
   const toastRef = useRef(null)
+  const fabDragRef = useRef({
+    isDragging: false,
+    hasMoved: false,
+    suppressClick: false,
+    startX: 0,
+    startY: 0,
+    originX: 0,
+    originY: 0,
+  })
 
   const authHeaders = useMemo(
     () => ({
@@ -116,6 +127,61 @@ function TaskPage({ apiUrl, auth, onLogout }) {
     window.setTimeout(() => setToast(''), 2500)
   }
 
+  const openCreateModal = () => {
+    setMessage('')
+    setFieldErrors({})
+    setShowCreateModal(true)
+  }
+
+  const moveFab = (event) => {
+    const drag = fabDragRef.current
+    if (!drag.isDragging) {
+      return
+    }
+
+    const deltaX = event.clientX - drag.startX
+    const deltaY = event.clientY - drag.startY
+
+    if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+      drag.hasMoved = true
+    }
+
+    const size = 64
+    const padding = 12
+    const maxX = window.innerWidth - size - padding
+    const maxY = window.innerHeight - size - padding
+    const nextX = Math.min(Math.max(padding, drag.originX + deltaX), maxX)
+    const nextY = Math.min(Math.max(padding, drag.originY + deltaY), maxY)
+
+    setFabPosition({ x: nextX, y: nextY })
+  }
+
+  const stopFabDrag = (event) => {
+    const drag = fabDragRef.current
+    if (!drag.isDragging) {
+      return
+    }
+
+    drag.isDragging = false
+    drag.suppressClick = drag.hasMoved
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  const startFabDrag = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    fabDragRef.current = {
+      isDragging: true,
+      hasMoved: false,
+      suppressClick: false,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: rect.left,
+      originY: rect.top,
+    }
+    setFabPosition({ x: rect.left, y: rect.top })
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
   const validateTask = (taskForm) => {
     const errors = {}
 
@@ -189,6 +255,7 @@ function TaskPage({ apiUrl, auth, onLogout }) {
     }
 
     setForm(emptyForm)
+    setShowCreateModal(false)
     await loadTasks()
     showToast('Task created successfully')
   }
@@ -262,101 +329,110 @@ function TaskPage({ apiUrl, auth, onLogout }) {
     completed: tasks.filter((task) => task.status === 'COMPLETED').length,
   }
 
+  const renderCreateForm = (extraClassName = '') => (
+    <form
+      ref={formRef}
+      className={`task-form ${extraClassName}`}
+      onSubmit={submit}
+    >
+      <div className="page-header">
+        <h2>Create Task</h2>
+      </div>
+
+      <label>
+        Title
+        <input
+          name="title"
+          value={form.title}
+          onChange={updateField}
+          maxLength="100"
+          aria-invalid={Boolean(fieldErrors.title)}
+          required
+        />
+        {fieldErrors.title && <span className="field-error">{fieldErrors.title}</span>}
+      </label>
+
+      <label>
+        Description
+        <textarea
+          name="description"
+          value={form.description}
+          onChange={updateField}
+          maxLength="500"
+          rows="4"
+          aria-invalid={Boolean(fieldErrors.description)}
+        />
+        <span className="field-hint">
+          {form.description.length}/500 characters
+        </span>
+        {fieldErrors.description && (
+          <span className="field-error">{fieldErrors.description}</span>
+        )}
+      </label>
+
+      <label>
+        Status
+        <select
+          name="status"
+          value={form.status}
+          onChange={updateField}
+          aria-invalid={Boolean(fieldErrors.status)}
+          required
+        >
+          <option value="TO_DO">To Do</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
+        {fieldErrors.status && <span className="field-error">{fieldErrors.status}</span>}
+      </label>
+
+      <label>
+        Due Date
+        <input
+          type="date"
+          name="dueDate"
+          value={form.dueDate}
+          onChange={updateField}
+          min={today}
+          aria-invalid={Boolean(fieldErrors.dueDate)}
+          required
+        />
+        {fieldErrors.dueDate && <span className="field-error">{fieldErrors.dueDate}</span>}
+      </label>
+
+      <button ref={createButtonRef} type="submit">Create Task</button>
+      {message && <p className="error">{message}</p>}
+    </form>
+  )
+
   return (
-    <div ref={pageRef} className="task-page">
-      {toast && <div ref={toastRef} className="toast">{toast}</div>}
+    <>
+      <div ref={pageRef} className="task-page">
+        {toast && <div ref={toastRef} className="toast">{toast}</div>}
 
-      <Navbar auth={auth} onLogout={onLogout} />
+        <Navbar auth={auth} onLogout={onLogout} />
 
-      <section className="summary-grid">
-        <article className="summary-card">
-          <span>Total Tasks</span>
-          <strong>{taskSummary.total}</strong>
-        </article>
-        <article className="summary-card">
-          <span>To Do</span>
-          <strong>{taskSummary.todo}</strong>
-        </article>
-        <article className="summary-card">
-          <span>In Progress</span>
-          <strong>{taskSummary.progress}</strong>
-        </article>
-        <article className="summary-card">
-          <span>Completed</span>
-          <strong>{taskSummary.completed}</strong>
-        </article>
-      </section>
+        <section className="summary-grid">
+          <article className="summary-card">
+            <span>Total Tasks</span>
+            <strong>{taskSummary.total}</strong>
+          </article>
+          <article className="summary-card">
+            <span>To Do</span>
+            <strong>{taskSummary.todo}</strong>
+          </article>
+          <article className="summary-card">
+            <span>In Progress</span>
+            <strong>{taskSummary.progress}</strong>
+          </article>
+          <article className="summary-card">
+            <span>Completed</span>
+            <strong>{taskSummary.completed}</strong>
+          </article>
+        </section>
 
-      <section className="task-layout">
-        <form ref={formRef} className="task-form" onSubmit={submit}>
-          <div className="page-header">
-            <h2>Create Task</h2>
-          </div>
-
-          <label>
-            Title
-            <input
-              name="title"
-              value={form.title}
-              onChange={updateField}
-              maxLength="100"
-              aria-invalid={Boolean(fieldErrors.title)}
-              required
-            />
-            {fieldErrors.title && <span className="field-error">{fieldErrors.title}</span>}
-          </label>
-
-          <label>
-            Description
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={updateField}
-              maxLength="500"
-              rows="4"
-              aria-invalid={Boolean(fieldErrors.description)}
-            />
-            <span className="field-hint">
-              {form.description.length}/500 characters
-            </span>
-            {fieldErrors.description && (
-              <span className="field-error">{fieldErrors.description}</span>
-            )}
-          </label>
-
-          <label>
-            Status
-            <select
-              name="status"
-              value={form.status}
-              onChange={updateField}
-              aria-invalid={Boolean(fieldErrors.status)}
-              required
-            >
-              <option value="TO_DO">To Do</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
-            {fieldErrors.status && <span className="field-error">{fieldErrors.status}</span>}
-          </label>
-
-          <label>
-            Due Date
-            <input
-              type="date"
-              name="dueDate"
-              value={form.dueDate}
-              onChange={updateField}
-              min={today}
-              aria-invalid={Boolean(fieldErrors.dueDate)}
-              required
-            />
-            {fieldErrors.dueDate && <span className="field-error">{fieldErrors.dueDate}</span>}
-          </label>
-
-          <button ref={createButtonRef} type="submit">Create Task</button>
-          {message && <p className="error">{message}</p>}
-        </form>
+        <section className="task-layout">
+          {renderCreateForm('desktop-create-form')}
 
         <section className="task-list-panel">
           <div className="page-header task-list-header">
@@ -422,14 +498,60 @@ function TaskPage({ apiUrl, auth, onLogout }) {
         </section>
       </section>
 
-      {editingTask && (
-        <EditTaskPage
-          task={editingTask}
-          onClose={closeEditModal}
-          onSave={saveEdit}
-        />
+        {editingTask && (
+          <EditTaskPage
+            task={editingTask}
+            onClose={closeEditModal}
+            onSave={saveEdit}
+          />
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="mobile-create-fab"
+        aria-label="Create new task"
+        style={
+          fabPosition
+            ? { left: `${fabPosition.x}px`, top: `${fabPosition.y}px` }
+            : undefined
+        }
+        onPointerDown={startFabDrag}
+        onPointerMove={moveFab}
+        onPointerUp={stopFabDrag}
+        onPointerCancel={stopFabDrag}
+        onClick={(event) => {
+          if (fabDragRef.current.suppressClick) {
+            event.preventDefault()
+            fabDragRef.current.suppressClick = false
+            return
+          }
+
+          openCreateModal()
+        }}
+      >
+        <span>+</span>
+      </button>
+
+      {showCreateModal && (
+        <div className="modal-backdrop mobile-create-backdrop" role="presentation">
+          <section className="modal mobile-create-modal" role="dialog" aria-modal="true">
+            <div className="modal-header">
+              <h2>New Task</h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Close create task modal"
+                onClick={() => setShowCreateModal(false)}
+              >
+                X
+              </button>
+            </div>
+            {renderCreateForm('modal-form mobile-create-form')}
+          </section>
+        </div>
       )}
-    </div>
+    </>
   )
 }
 

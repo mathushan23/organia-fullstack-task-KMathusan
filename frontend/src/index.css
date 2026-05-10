@@ -6,12 +6,12 @@
   html,
   body,
   #root {
-    @apply min-h-full bg-slate-950;
-    background-color: #020617;
+    @apply min-h-full bg-slate-50;
+    background-color: #f8fafc;
   }
 
   body {
-    @apply m-0 min-h-screen overflow-x-hidden text-slate-200 antialiased;
+    @apply m-0 min-h-screen overflow-x-hidden text-slate-700 antialiased;
     font-family: system-ui, "Segoe UI", Roboto, sans-serif;
     overscroll-behavior: none;
   }
