@@ -6,7 +6,7 @@ import TaskPage from './pages/TaskPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import './App.css'
 
-const API_URL = 'http://localhost:8082/api'
+const API_URL ='https://organia-fullstack-task-kmathusan.onrender.com/api'
 
 function App() {
   const [page, setPage] = useState('login')
