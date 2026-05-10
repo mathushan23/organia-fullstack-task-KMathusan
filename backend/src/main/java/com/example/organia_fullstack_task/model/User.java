@@ -59,4 +59,14 @@ public class User {
     public Role getRole() {
         return role;
     }
+
+    public void update(String name, String email, Role role) {
+        this.name = name;
+        this.email = email;
+        this.role = role;
+    }
+
+    public void updatePassword(String password) {
+        this.password = password;
+    }
 }

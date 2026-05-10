@@ -78,4 +78,8 @@ public class Task {
         this.status = status;
         this.dueDate = dueDate;
     }
+
+    public void assignTo(User user) {
+        this.user = user;
+    }
 }

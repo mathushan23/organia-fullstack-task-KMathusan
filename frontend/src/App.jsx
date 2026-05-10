@@ -3,6 +3,7 @@ import { animate, stagger } from 'animejs'
 import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import TaskPage from './pages/TaskPage.jsx'
+import AdminPage from './pages/AdminPage.jsx'
 import './App.css'
 
 const API_URL = 'http://localhost:8082/api'
@@ -145,7 +146,11 @@ function App() {
       </div>
 
       {auth ? (
-        <TaskPage apiUrl={API_URL} auth={auth} onLogout={logout} />
+        auth.role === 'ADMIN' ? (
+          <AdminPage apiUrl={API_URL} auth={auth} onLogout={logout} />
+        ) : (
+          <TaskPage apiUrl={API_URL} auth={auth} onLogout={logout} />
+        )
       ) : (
         <section ref={authShellRef} className="auth-shell">
           <section className="panel auth-panel">

@@ -354,6 +354,46 @@ button {
   @apply grid items-start gap-6 lg:grid-cols-[360px_1fr];
 }
 
+.admin-layout {
+  @apply grid items-start gap-6 lg:grid-cols-[360px_1fr];
+}
+
+.admin-layout-single {
+  @apply lg:grid-cols-1;
+}
+
+.admin-tabs {
+  @apply flex w-fit gap-2 rounded-xl border border-slate-200 bg-white/90 p-2 shadow-lg shadow-slate-300/30 backdrop-blur;
+}
+
+.admin-tab {
+  @apply bg-transparent px-5 py-2.5 text-sm font-bold text-slate-600 shadow-none hover:bg-sky-50 hover:text-sky-700;
+}
+
+.admin-tab.active {
+  @apply bg-sky-600 text-white shadow-md shadow-sky-900/10 hover:bg-sky-700 hover:text-white;
+}
+
+.admin-card {
+  @apply md:grid-cols-[1fr_170px];
+}
+
+.admin-card-actions {
+  @apply flex flex-wrap items-center justify-end gap-2;
+}
+
+.compact-button {
+  @apply rounded-lg px-3 py-2 text-xs font-bold;
+}
+
+.admin-edit-form {
+  @apply mb-5 shadow-none;
+}
+
+.admin-form-actions {
+  @apply grid grid-cols-2 gap-3;
+}
+
 .task-form,
 .task-list-panel {
   @apply rounded-xl border border-slate-200 bg-white/95 p-6 shadow-xl shadow-slate-300/40 backdrop-blur;
@@ -499,6 +539,18 @@ button {
 
   .task-layout {
     @apply grid-cols-1 gap-4;
+  }
+
+  .admin-layout {
+    @apply grid-cols-1 gap-4;
+  }
+
+  .admin-tabs {
+    @apply w-full;
+  }
+
+  .admin-tab {
+    @apply flex-1;
   }
 
   .task-list-panel {
