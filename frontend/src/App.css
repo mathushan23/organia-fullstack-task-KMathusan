@@ -440,7 +440,7 @@ button {
 }
 
 .toast {
-  @apply fixed right-5 top-5 z-20 max-w-sm rounded-xl border border-sky-200 bg-sky-600 px-5 py-3 font-bold text-white shadow-xl shadow-sky-900/20;
+  @apply fixed right-3 top-24 z-50 max-w-sm rounded-xl border border-sky-200 bg-sky-600 px-5 py-3 font-bold text-white shadow-xl shadow-sky-900/20;
 }
 
 .modal-backdrop {
@@ -601,7 +601,7 @@ button {
   }
 
   .toast {
-    @apply left-4 right-4 top-4 max-w-none;
+    @apply left-3 right-3 top-24 max-w-none;
   }
 
   .modal-backdrop {
